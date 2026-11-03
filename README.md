@@ -1,20 +1,17 @@
-# X Buzzer Detector
+# X Data Scraper
 
-Deteksi indikasi perilaku terkoordinasi (buzzer) di X (Twitter) menggunakan analisis pola posting, kemiripan konten, dan karakteristik akun.
+Tool untuk scraping data mentah dari X (Twitter) dengan UI web interaktif. Ambil tweet, profile, replies dari keyword, hashtag, atau link postingan.
 
 ## Features
 
 - **Scraping real-time** dari X menggunakan cookies browser
-- **Deteksi konten duplikat** dengan TF-IDF cosine similarity
-- **Analisis burst activity** - banyak akun posting bersamaan
-- **Scoring berbasis karakteristik** akun mencurigakan:
-  - Akun baru (<90 hari)
-  - Tweet per hari tinggi (>50/hari)
-  - Rasio following/followers tidak wajar
-  - Bio kosong atau avatar default
-  - Username banyak angka
+- **Multiple input types**: keyword, hashtag, link tweet, link hashtag
+- **Data lengkap**: text, username, bio, followers, tanggal, URL
+- **Filter waktu**: ambil data N hari terakhir
+- **Scrape replies**: ambil balasan dari tiap tweet
 - **UI web interaktif** dengan Streamlit
 - **Export CSV** untuk analisis lanjutan
+- **Bonus**: analisis perilaku terkoordinasi (deteksi buzzer, duplikasi konten, burst activity)
 
 ## Requirements
 
@@ -51,76 +48,85 @@ Format: `auth_token=XXXX; ct0=YYYY`
 ### 3. Input query
 
 Masukkan salah satu:
-- Link tweet: `https://x.com/user/status/123456789`
-- Keyword: `pilpres 2024`
-- Hashtag: `#pilpres2024`
-- Link hashtag: `https://x.com/hashtag/pilpres2024`
+- Link tweet: `https://x.com/user/status/123456789` → ambil tweet + replies
+- Keyword: `pilpres 2024` → search tweets
+- Hashtag: `#pilpres2024` → search hashtag
+- Link hashtag: `https://x.com/hashtag/pilpres2024` → auto convert ke search
 
-### 4. Analisis
+### 4. Atur parameter
 
-Klik **Scrape & Analisis**. Data tersimpan di `data/raw/[nama_isu].csv`.
+- **Nama isu**: nama file output (misal: `pilpres_nov`, `banjir_jakarta`)
+- **Limit**: jumlah tweet (50-5000)
+- **Rentang waktu**: filter N hari terakhir (opsional)
+- **Ambil balasan**: scrape replies dari tiap tweet (lambat, untuk analisis diskusi)
 
-## Cara Kerja
+### 5. Scrape
 
-### Scoring System (0-100)
+Klik **Scrape & Analisis**. Data mentah tersimpan di `data/raw/[nama_isu].csv`.
 
-| Faktor | Bobot | Keterangan |
-|--------|-------|------------|
-| Akun <90 hari | +10 | Akun sangat baru |
-| Akun <30 hari | +5 | Tambahan untuk akun ekstrem baru |
-| Tweets/day >50 | +15 | Aktivitas tidak wajar |
-| Following/followers >5x | +10 | Rasio mencurigakan |
-| Avatar default | +5 | Tidak ada personalisasi |
-| Bio kosong | +5 | Kurang kredibilitas |
-| Username banyak angka (≥5) | +5 | Auto-generated pattern |
-| Duplikasi konten | +25 | Copy-paste campaign |
-| Burst activity | +20 | Koordinasi waktu posting |
+## Data Output
 
-### Deteksi Duplikasi
+### CSV Mentah (`data/raw/[nama_isu].csv`)
 
-- TF-IDF vectorization pada teks tweet
-- Cosine similarity antar akun
-- Threshold default: 0.8 (80% mirip)
-- Mengabaikan URL, mention, hashtag
+Setiap row = 1 tweet dengan kolom:
 
-### Burst Detection
+| Kolom | Keterangan |
+|-------|------------|
+| `id` | Tweet ID |
+| `date` | Timestamp posting |
+| `text` | Konten tweet (raw) |
+| `username` | Username akun |
+| `created` | Tanggal akun dibuat |
+| `followers` | Jumlah followers |
+| `following` | Jumlah following |
+| `statuses` | Total tweet akun |
+| `bio` | Bio/deskripsi akun |
+| `avatar` | URL avatar |
+| `is_rt` | Boolean (retweet atau bukan) |
+| `is_reply` | Boolean (reply atau bukan) |
+| `url` | Link ke tweet |
+| `isu` | Nama isu (dari input) |
+| `query` | Query pencarian |
 
-- Grouping tweet per menit
-- Flagging jika ≥N akun posting bersamaan
-- Default: 5 akun/menit
+Format: UTF-8 CSV, bisa dibuka Excel/Pandas/R.
 
-## Output
+## Fitur Analisis (Bonus)
+
+Setelah scraping, aplikasi otomatis menampilkan:
 
 ### 1. Tabel Akun
+Agregasi per username: total tweets, followers, following, rasio RT, dll.
 
-Akun diurutkan berdasarkan skor (tertinggi = paling mencurigakan):
+### 2. Chart Posting Per Jam
+Visualisasi kapan tweet paling banyak (identifikasi jam ramai).
 
-- Username, followers, following, statuses
-- Umur akun (days)
-- Tweets per day
-- Rasio duplikasi & burst
-- **Score** (0-100)
+### 3. Deteksi Duplikasi
+Tweet mirip antar akun (cosine similarity >0.8) - indikasi copy-paste.
 
-### 2. Pola Posting Per Jam
+### 4. Scoring Akun
+Skor 0-100 berdasarkan:
+- Umur akun, tweet/day, rasio following/followers
+- Duplikasi konten & burst activity
+- Untuk riset buzzer/koordinasi (opsional)
 
-Chart untuk mendeteksi jam-jam aktivitas terkoordinasi.
+Atur threshold di sidebar:
+- **Ambang kemiripan teks**: 0.5-1.0 (default 0.8)
+- **Min. akun per menit**: 3-20 (default 5)
 
-### 3. Tweet Duplikat
+## Use Cases
 
-Daftar tweet yang mirip antar akun berbeda (indikasi copy-paste).
-
-### 4. CSV Export
-
-- `data/raw/[isu].csv` - data mentah scraping
-- `hasil.csv` - hasil scoring (download button)
+- **Riset media sosial**: analisis isu, sentimen, akun influencer
+- **Monitoring brand**: mention, hashtag campaign
+- **Jurnalisme data**: investigasi pola diskusi publik
+- **Akademik**: penelitian komunikasi, sosiologi digital
+- **OSINT**: intelligence gathering dari data publik
 
 ## Catatan
 
 ⚠️ **Disclaimer:**
-- Skor adalah **indikasi**, bukan vonis
-- Akun genuine bisa punya skor tinggi (misal: news bot)
-- Selalu verifikasi manual sebelum menyimpulkan
-- Tool ini untuk riset, bukan akusasi
+- Data hasil scraping adalah data **publik** dari X
+- Fitur scoring hanya **indikasi**, bukan bukti atau vonis
+- Gunakan untuk riset/monitoring, bukan harassment
 
 ⚠️ **Rate Limits:**
 - X membatasi scraping per akun
@@ -153,25 +159,34 @@ twscrape search "indonesia" --limit=5
 
 ### Upload Mode
 
-Jika sudah punya CSV hasil scraping:
+Analisis ulang CSV lama tanpa scraping lagi:
 1. Pilih "Upload CSV" di sidebar
-2. Upload file CSV
-3. Atur threshold similarity & burst
-4. Analisis otomatis
+2. Upload file dari `data/raw/` atau hasil scraping sebelumnya
+3. Atur threshold similarity & burst di sidebar
+4. Lihat analisis dengan parameter berbeda
 
-### CLI Mode
+### CLI Mode / Automation
 
-Untuk integrasi atau automation, import fungsi:
+Import fungsi untuk scripting:
 
 ```python
 from screpping import scrape, score
 
-# Scrape
-df = scrape("keyword", limit=200, cookies="auth_token=...; ct0=...")
+# Scraping
+df = scrape(
+    query="keyword atau #hashtag",
+    limit=200,
+    cookies="auth_token=...; ct0=...",
+    fetch_replies=False,
+    days=7  # 7 hari terakhir
+)
 
-# Score
+# Save mentah
+df.to_csv("output.csv", index=False)
+
+# Analisis (opsional)
 tweets_df, accounts_df = score(df, sim_thr=0.8, burst_users=5)
-print(accounts_df.head())
+print(accounts_df[["username", "score"]].head())
 ```
 
 ## File Structure
@@ -191,4 +206,4 @@ MIT - Gunakan dengan bijak dan bertanggung jawab.
 
 ---
 
-🤖 *Deteksi buzzer untuk ekosistem digital yang lebih sehat*
+🤖 *Scrape data X untuk riset, monitoring, dan analisis*
